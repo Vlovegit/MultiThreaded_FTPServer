@@ -1,3 +1,4 @@
+
 import java.io.*;
 import java.net.*;
 import java.nio.*;
@@ -63,7 +64,7 @@ public class WorkerThread implements Runnable{
 			
 			//set server directory
 			String get_line;
-			if (!(get_line = reader.readLine()).equals("")) {
+			if (!(get_line = bufferedReader.readLine()).equals("")) {
 				serverPath = Paths.get(get_line);
 			}
 		} catch (Exception e) {
@@ -142,51 +143,58 @@ public class WorkerThread implements Runnable{
 		clientFtp.moveOut(serverPath.resolve(commandArgs.get(1)), terminateID);
 	}
 
+	public void listFiles() throws Exception {
+		
+		//send command
+		dataOutputStream.writeBytes("ls" + "\n");
+		
+		//messages
+		String ls_line;
+		while (!(ls_line = bufferedReader.readLine()).equals(""))
+		    System.out.println(ls_line);
+	}
+
+	public void changeDirectory() throws Exception {
+		
+		if (commandArgs.size() == 1) 
+			dataOutputStream.writeBytes("cd" + "\n");
+		else
+			dataOutputStream.writeBytes("cd " + commandArgs.get(1) + "\n");
+		
+		String cd_line;
+		if (!(cd_line = bufferedReader.readLine()).equals(""))
+			System.out.println(cd_line);
+		
+		dataOutputStream.writeBytes("pwd" + "\n");
+		System.out.println(bufferedReader.readLine());
+	}
+
+
+
     public void invalid() {
 		System.out.println("Invalid Arguments Entered");
 	}
 
 	public void quit() throws Exception {
-		//only one argument
-		if (commandArgs.size() != 1) {
-			invalid();
-			return;
-		}
 		
 		if (!clientFtp.quit()) {
 			System.out.println("Cannot quit, file is being transfered");
 			return;
 		}
-		
-		//send command
 		dataOutputStream.writeBytes("quit" + "\n");
-	}
-
-	public void notSupported() {
-		System.out.println("Command does not support new thread spawn");
 	}
 	
 	public void terminate() throws Exception {
-		//only two arguments
-		if (commandArgs.size() != 2) {
-			invalid();
-			return;
-		}
-		
-		//not backgroundable
-		if (commandArgs.get(1).endsWith(" &")) {
-			notSupported();
-			return;
-		}
 		
 		try {
 			int terminateID = Integer.parseInt(commandArgs.get(1));
 			if (!clientFtp.abortAppend(terminateID))
 				System.out.println("TerminateID is Invalid");
 			else
-				(new Thread(new TerminateWorkerThread(machineip, Main.tPort, terminateID))).start();
+				(new Thread(new TerminateWorkerThread(machineip, ClientThreadedMain.tPort, terminateID))).start();
 		} catch (Exception e) {
 			System.out.println("TerminateID is Invalid");
+			e.printStackTrace();
 		}
 	}
 
@@ -197,40 +205,57 @@ public class WorkerThread implements Runnable{
 			String command;
 			
 			do {
-				//get input
-				System.out.print(ClientThreadedMain.PROMPT_STRING);
+				
+				System.out.print("myftp>");
 				command = input.nextLine();
 				command = command.trim();
-				
-				//parse input into tokens
 				commandArgs = new ArrayList<String>();
 				Scanner tokenize = new Scanner(command);
-				//gets command
 				if (tokenize.hasNext())
 				    commandArgs.add(tokenize.next());
-				//gets rest of string after the command; this allows filenames with spaces: 'file1 test.txt'
+
 				if (tokenize.hasNext())
 					commandArgs.add(command.substring(commandArgs.get(0).length()).trim());
 				tokenize.close();
-				if (ClientThreadedMain.DEBUG_VARIABLE) System.out.println(commandArgs);
+				//System.out.println(commandArgs);
 				
-				//allows for blank enter
 				if (commandArgs.isEmpty())
+				{
+					System.out.println("No command entered, please try again");
 					continue;
+				}
 				
 				//command selector
-				switch(commandArgs.get(0)) {
-					case "get": 		receiveFile(); 			break;
+				switch(commandArgs.get(0)) 
+				{
+					case "get": 		receiveFile(); 			
+										break;
+
 					//case "put": 		put(); 			break;
-					//case "delete": 		delete(); 		break;
-					//case "ls": 			ls(); 			break;
-					//case "cd": 			cd(); 			break;
+					
+					case "delete": 		dataOutputStream.writeBytes("delete " + commandArgs.get(1) + "\n");
+										System.out.println(bufferedReader.readLine());
+										break;
+
+					case "ls": 			listFiles();		
+										break;
+
+					case "cd": 			changeDirectory(); 			
+										break;
+
 					//case "mkdir": 		mkdir(); 		break;
-					//case "pwd": 		pwd(); 			break;
-					case "quit": 		quit(); 		break;
-					case "terminate":	terminate();	break;
-					default:
-						System.out.println("Invalid command '" + commandArgs.get(0) + "'");
+					
+					case "pwd": 		dataOutputStream.writeBytes("pwd" + "\n");
+										System.out.println(bufferedReader.readLine());			
+										break;
+
+					case "quit": 		quit(); 		
+										break;
+
+					case "terminate":	terminate();	
+										break;
+					
+					default:			System.out.println("Invalid command '" + commandArgs.get(0) + "'");
 				}
 			} while (!command.equalsIgnoreCase("quit"));
 			input.close();

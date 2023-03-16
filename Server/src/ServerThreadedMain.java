@@ -1,3 +1,4 @@
+
 import java.net.*;
 
 public class ServerThreadedMain {
@@ -33,9 +34,9 @@ public class ServerThreadedMain {
             }
 
             try {
-                FTPServer ftpServer = new FTPServer();               
-                (new Thread(new DispatcherMainThread(ftpServer, nSocket))).start();
-                (new Thread(new TerminateMainThread(ftpServer, tSocket))).start();
+                ServerFTP serverFTP = new ServerFTP();               
+                (new Thread(new DispatcherMainThread(serverFTP, nSocket))).start();
+                (new Thread(new TerminateMainThread(serverFTP, tSocket))).start();
             } catch (Exception e) {
                 System.out.println("Error creating a new thread");
                 e.printStackTrace(); //TODO

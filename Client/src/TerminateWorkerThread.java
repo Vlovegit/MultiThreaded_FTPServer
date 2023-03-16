@@ -1,3 +1,4 @@
+
 import java.io.*;
 import java.net.*;
 
@@ -9,17 +10,15 @@ public class TerminateWorkerThread implements Runnable {
 	private OutputStream outputStream;
 	private DataOutputStream dataOutputStream;
 
-	
 	public TerminateWorkerThread(String machineip, int tPort, int terminateID) throws Exception {
 		this.terminateID = terminateID;
-		
 		InetAddress ip = InetAddress.getByName(machineip);
 		socket = new Socket();
 		socket.connect(new InetSocketAddress(ip.getHostAddress(), tPort), 2000);
-		
 		outputStream = socket.getOutputStream();
 		dataOutputStream = new DataOutputStream(outputStream);
 	}
+	
 	
 	public void run() {
 		try {

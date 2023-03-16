@@ -1,3 +1,4 @@
+
 import java.net.*;
 
 public class DispatcherMainThread implements Runnable {
@@ -13,7 +14,7 @@ public class DispatcherMainThread implements Runnable {
 		System.out.println(" Dispatcher Thread "+ Thread.currentThread().getName() + " Started");
 		while (true) {
 			try {
-				(new Thread(new NormalWorker(serverFTP, nServerSocket.accept()))).start();
+				(new Thread(new NormalWorkerThread(serverFTP, nServerSocket.accept()))).start();
 			} catch (Exception e) {
 				System.out.println("Dispatcher Thread " + Thread.currentThread().getName() + " failed to start");
 			}
