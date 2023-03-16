@@ -85,7 +85,7 @@ public class ThreadSpawnHandler implements Runnable {
 			Thread.sleep(100);
 			dataOutputStream.writeBytes("quit" + "\n");
 		} catch (Exception e) {
-			if (ClientThreadedMain.DEBUG_VARIABLE) System.out.println("ERROR IN THREAD SPAWN HANDLER");
+			System.out.println("ERROR IN THREAD SPAWN HANDLER");
 		}
 	}
 }

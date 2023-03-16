@@ -13,12 +13,12 @@ public class TerminateMainThread implements Runnable {
 	}
 	
 	public void run() {
-		System.out.println("Terminate Thread " + Thread.currentThread().getName() + " started");
+		System.out.println("Terminate " + Thread.currentThread().getName() + " started");
 		while (true) {
 			try {
 				(new Thread(new TerminateServerThread(serverFTP, tServerSocket.accept()))).start();
 			} catch (Exception e) {
-				System.out.println("Terminate Thread " + Thread.currentThread().getName() + " failed to start");
+				System.out.println("Terminate " + Thread.currentThread().getName() + " failed to start");
 			}
 		}
 	}

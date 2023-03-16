@@ -32,100 +32,92 @@ public class NormalWorkerThread implements Runnable{
     public void sendFile() throws Exception {
 		//not a directory or file
 		if (Files.notExists(path.resolve(commandargs.get(1)))) {
-			dataOutputStream.writeBytes("get: " + path.resolve(commandargs.get(1)).getFileName() + ": No such file or directory" + "\n");
+			dataOutputStream.writeBytes(" No such file or directory exist at Server" + "\n");
 			return;
 		} 
 		//is a directory
 		if (Files.isDirectory(path.resolve(commandargs.get(1)))) {
-			dataOutputStream.writeBytes("get: " + path.resolve(commandargs.get(1)).getFileName() + ": Is a directory" + "\n");
+			dataOutputStream.writeBytes("Requested file is a directory, cannot fetch it" + "\n");
 			return;
 		}
 		
-		//////////
-		// LOCK //
-		//////////
-		int lockID = serverFTP.getIN(path.resolve(commandargs.get(1)));
-		if (lockID == -1) {
-			dataOutputStream.writeBytes("get: " + path.resolve(commandargs.get(1)).getFileName() + ": No such file or directory" + "\n");
+		// Fetch lock for Get Operation
+		int lockId = serverFTP.getGetLock(path.resolve(commandargs.get(1)));
+		if (lockId == -1) {
+			dataOutputStream.writeBytes("Failed to acquire a get lock on the file" + "\n");
 			return;
 		}
 		
-		//blank message
 		dataOutputStream.writeBytes("\n");
 		
-		//send terminateID
-		dataOutputStream.writeBytes(lockID + "\n");
+		//send terminateId back to the client
+		dataOutputStream.writeBytes(lockId + "\n");
 		
-		//need to figure
 		Thread.sleep(100);
 		
-		if (serverFTP.terminateGET(path.resolve(commandargs.get(1)), lockID)) {
+		if (serverFTP.abortGet(path.resolve(commandargs.get(1)), lockId)) {
 			quit();
 			return;
 		}
 		
-		//transfer file
+		//transfer content in batches
 		byte[] buffer = new byte[1000];
 		try {
 			File file = new File(path.resolve(commandargs.get(1)).toString());
 			
-			//write long filesize as first 8 bytes
 			long fileSize = file.length();
 			byte[] fileSizeBytes = ByteBuffer.allocate(8).putLong(fileSize).array();
 			dataOutputStream.write(fileSizeBytes, 0, 8);
 			
-			if (serverFTP.terminateGET(path.resolve(commandargs.get(1)), lockID)) {
+			//Operation terminated from client side
+			if (serverFTP.abortGet(path.resolve(commandargs.get(1)), lockId)) {
 				quit();
 				return;
 			}
 			
-			//write file
+			//send file to client
 			BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
 			int count = 0;
 			while((count = in.read(buffer)) > 0) {
-				if (serverFTP.terminateGET(path.resolve(commandargs.get(1)), lockID)) {
+				if (serverFTP.abortGet(path.resolve(commandargs.get(1)), lockId)) {
 					in.close();
 					quit();
 					return;
 				}
 				dataOutputStream.write(buffer, 0, count);
 			}
-			serverFTP.getOUT(path.resolve(commandargs.get(1)), lockID);
+
+			//release lock for get operation
+
+			serverFTP.releaseGetLock(path.resolve(commandargs.get(1)), lockId);
 			in.close();
 		} catch(Exception e) {
-			System.out.println("transfer error: " + commandargs.get(1));
+			System.out.println("File transfer error");
 		}
 		
-		////////////
-		// UNLOCK //
-		////////////
-		//serverFTP.getOUT(path.resolve(commandargs.get(1)), lockID);
 	}
 
     public void receiveFile() throws Exception {
-		//LOCK ID
-		int lockID = serverFTP.putIN_ID(path.resolve(commandargs.get(1)));
-		System.out.println(lockID);
 		
-		//send message ID
-		dataOutputStream.writeBytes(lockID + "\n");
+		//Fetch lock for put operation
+		int lockId = serverFTP.getPutLockId(path.resolve(commandargs.get(1)));
 		
 		
-		//////////
-		// LOCK //
-		//////////
-		while (!serverFTP.putIN(path.resolve(commandargs.get(1)), lockID))
+		//send terminate Id to client
+		dataOutputStream.writeBytes(lockId + "\n");
+		
+		while (!serverFTP.getPutLock(path.resolve(commandargs.get(1)), lockId))
 			Thread.sleep(10);
 		
-		if (serverFTP.terminatePUT(path.resolve(commandargs.get(1)), lockID)) {
+		if (serverFTP.abortPut(path.resolve(commandargs.get(1)), lockId)) {
 			quit();
 			return;
 		}
 		
-		//can write
+		//Start receiving file from client
 		dataOutputStream.writeBytes("\n");
 		
-		if (serverFTP.terminatePUT(path.resolve(commandargs.get(1)), lockID)) {
+		if (serverFTP.abortPut(path.resolve(commandargs.get(1)), lockId)) {
 			quit();
 			return;
 		}
@@ -136,7 +128,7 @@ public class NormalWorkerThread implements Runnable{
 		DataInputStream dis = new DataInputStream(bais);
 		long fileSize = dis.readLong();
 		
-		if (serverFTP.terminatePUT(path.resolve(commandargs.get(1)), lockID)) {
+		if (serverFTP.abortPut(path.resolve(commandargs.get(1)), lockId)) {
 			quit();
 			return;
 		}
@@ -146,7 +138,9 @@ public class NormalWorkerThread implements Runnable{
 		byte[] buffer = new byte[1000];
 		long bytesReceived = 0;
 		while(bytesReceived < fileSize) {
-			if (serverFTP.terminatePUT(path.resolve(commandargs.get(1)), lockID)) {
+
+			//Operation terminated from client side
+			if (serverFTP.abortPut(path.resolve(commandargs.get(1)), lockId)) {
 				f.close();
 				quit();
 				return;
@@ -156,12 +150,12 @@ public class NormalWorkerThread implements Runnable{
 			bytesReceived += count;
 		}
 		f.close();
-		
-		serverFTP.putOUT(path.resolve(commandargs.get(1)), lockID);
+		//release lock for put operation
+		serverFTP.releasePutLock(path.resolve(commandargs.get(1)), lockId);
 	}
 
 	public void pwd() throws Exception {
-		//send path
+		//send present working directory
 		dataOutputStream.writeBytes(currentThreadDir + "\n");
 	}
 
@@ -246,7 +240,7 @@ public class NormalWorkerThread implements Runnable{
 	}
 
 	public void delete() throws Exception {
-		if (!serverFTP.delete(path.resolve(commandargs.get(1)))) {
+		if (!serverFTP.remove(path.resolve(commandargs.get(1)))) {
 			dataOutputStream.writeBytes("Cannot delete file as it is locked" + "\n");
 			dataOutputStream.writeBytes("\n");
 			return;
@@ -269,7 +263,7 @@ public class NormalWorkerThread implements Runnable{
 	}
 
     public void quit() throws Exception {
-		//close socket
+		//socket connection closed
 		nSocket.close();
 		throw new Exception();
 	}
@@ -279,24 +273,23 @@ public class NormalWorkerThread implements Runnable{
 		exitThread:
 		while (true) {
 			try {
-				//check every 10 ms for input
+				//check for commands from users regularly
 				while (!br.ready())
 					Thread.sleep(10);
 				
-				//capture and parse input
+				//tokenize input into tokens
 				commandargs = new ArrayList<String>();
-				String command = br.readLine();
-				Scanner tokenize = new Scanner(command);
-				//gets command
+				String cmd = br.readLine();
+				Scanner tokenize = new Scanner(cmd);
 				if (tokenize.hasNext())
 				    commandargs.add(tokenize.next());
-				//gets rest of string after the command; this allows filenames with spaces: 'file1 test.txt'
-				if (tokenize.hasNext())
-					commandargs.add(command.substring(commandargs.get(0).length()).trim());
-				tokenize.close();
-				System.out.println("Sent from Client : "+ command);
 				
-				//command selector
+				if (tokenize.hasNext())
+					commandargs.add(cmd.substring(commandargs.get(0).length()).trim());
+				tokenize.close();
+				System.out.println("Sent from Client : "+ cmd);
+				
+				
 				switch(commandargs.get(0)) 
 				{
 					case "get": 	sendFile();		

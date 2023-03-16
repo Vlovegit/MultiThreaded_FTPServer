@@ -16,7 +16,7 @@ public class ServerFTP {
 		abortSet = new HashSet<Integer>();
 	}
 
-    public void status() {
+    public void showStatus() {
 		System.out.println("ServerFTP: fileStatus-filePathMapper-putQueue-abortSet");
 		System.out.println(fileStatus.toString());
 		System.out.println(filePathMapper.toString());
@@ -31,41 +31,41 @@ public class ServerFTP {
 				+ ", abortSet=" + abortSet + "]";
 	}
 
-    public int generateID() {
+    public int generateId() {
 		return new Random().nextInt(70000) + 10000;
 	}
 	
-	public synchronized boolean delete(Path path) {
+	public synchronized boolean remove(Path path) {
 		return !fileStatus.containsKey(path);
 	}
 	
-	public synchronized void terminate(int commandID) {
+	public synchronized void abort(int commandID) {
 		abortSet.add(commandID);
 	}
 
-    public synchronized boolean putIN(Path path, int commandID) {
+    public synchronized boolean getPutLock(Path path, int commandID) {
                 
                 if (putQueue.peek() == commandID) {
                     if (fileStatus.containsKey(path)) {
                         if (fileStatus.get(path).writeLock().tryLock()) {
-                            
+                            showStatus();
                             return true;
                         } else
                             return false;
                     } else {
                         fileStatus.put(path, new ReentrantReadWriteLock());
                         fileStatus.get(path).writeLock().lock();
-                        
+                        showStatus();
                         return true;
                     }
                 }
                 return false;
             }
         
-        public synchronized int putIN_ID(Path path) {
+        public synchronized int getPutLockId(Path path) {
                 int commandID = 0;
                 
-                while (filePathMapper.containsKey(commandID = generateID()));
+                while (filePathMapper.containsKey(commandID = generateId()));
                 filePathMapper.put(commandID, path);
                 
                 putQueue.add(commandID);
@@ -73,7 +73,7 @@ public class ServerFTP {
                 return commandID;
         }
             
-        public synchronized void putOUT(Path path, int commandID) {
+        public synchronized void releasePutLock(Path path, int commandID) {
                 
                 try {
                     fileStatus.get(path).writeLock().unlock();
@@ -82,13 +82,14 @@ public class ServerFTP {
                     
                     if (fileStatus.get(path).getReadLockCount() == 0 && !fileStatus.get(path).isWriteLocked())
                         fileStatus.remove(path);
+                    showStatus();
                 } catch (Exception e) {
                     e.printStackTrace(); //TODO
                 }
                 
         }
 
-            public synchronized int getIN(Path path) {
+            public synchronized int getGetLock(Path path) {
                 int commandID = 0;
                 
                 //if Path is in fileStatus
@@ -96,16 +97,17 @@ public class ServerFTP {
                     //try to get read lock
                     if (fileStatus.get(path).readLock().tryLock()) {
                         //generate unique 5 digit number
-                        while (filePathMapper.containsKey(commandID = generateID()));
+                        while (filePathMapper.containsKey(commandID = generateId()));
                         
                         //add to filePathMapper
                         filePathMapper.put(commandID, path);
-                        
+                        showStatus();
                         return commandID;
                     }
                     //didn't get lock
                     else
                         return -1;
+                
                 }
                 //acquire lock
                 else {
@@ -114,16 +116,17 @@ public class ServerFTP {
                     fileStatus.get(path).readLock().lock();
                     
                     //generate unique 5 digit number
-                    while (filePathMapper.containsKey(commandID = generateID()));
+                    while (filePathMapper.containsKey(commandID = generateId()));
                     
                     //add to filePathMapper
                     filePathMapper.put(commandID, path);
-                    
+                    showStatus();
                     return commandID;
                 }
+                
             }
 
-            public synchronized boolean terminateGET(Path path, int commandID) {
+            public synchronized boolean abortGet(Path path, int commandID) {
                 try {
                     if (abortSet.contains(commandID)) {
                         abortSet.remove(commandID);
@@ -132,6 +135,7 @@ public class ServerFTP {
                         
                         if (fileStatus.get(path).getReadLockCount() == 0 && !fileStatus.get(path).isWriteLocked())
                             fileStatus.remove(path);
+                        showStatus();
                         return true;
                     }
                 } catch (Exception e) {
@@ -141,7 +145,7 @@ public class ServerFTP {
                 return false;
             }
             
-            public synchronized boolean terminatePUT(Path path, int commandID) {
+            public synchronized boolean abortPut(Path path, int commandID) {
                 
                 try {
                     if (abortSet.contains(commandID)) {
@@ -153,7 +157,7 @@ public class ServerFTP {
                         
                         if (fileStatus.get(path).getReadLockCount() == 0 && !fileStatus.get(path).isWriteLocked())
                             fileStatus.remove(path);
-                        
+                        showStatus();
                         return true;
                     }
                 } catch (Exception e) {
@@ -163,7 +167,7 @@ public class ServerFTP {
                 return false;
             }
             
-            public synchronized void getOUT(Path path, int commandID) {
+            public synchronized void releaseGetLock(Path path, int commandID) {
                 
                 try {
                     //remove locks
@@ -172,6 +176,7 @@ public class ServerFTP {
                     
                     if (fileStatus.get(path).getReadLockCount() == 0 && !fileStatus.get(path).isWriteLocked())
                         fileStatus.remove(path);
+                    showStatus();
                 } catch (Exception e) {
                     e.printStackTrace(); //TODO
                 }

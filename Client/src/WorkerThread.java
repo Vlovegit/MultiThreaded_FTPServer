@@ -51,30 +51,25 @@ public class WorkerThread implements Runnable{
 
     public void initializeStream() {
 		try {
-			//Input
+			
 			inputStreamReader = new InputStreamReader(socket.getInputStream());
 			bufferedReader = new BufferedReader(inputStreamReader);
-			
-			//Data
 			dataInputStream = new DataInputStream(socket.getInputStream());
-			
-			//Output
 			outputStream = socket.getOutputStream();
 			dataOutputStream = new DataOutputStream(outputStream);
 			
-			//get server directory
+			//get present working directory
 			dataOutputStream.writeBytes("pwd" + "\n");
 			
-			//set server directory
+			//set present working directory at client side
 			String get_line;
 			if (!(get_line = bufferedReader.readLine()).equals("")) {
 				serverPath = Paths.get(get_line);
 			}
 		} catch (Exception e) {
-			if (ClientThreadedMain.DEBUG_VARIABLE) System.out.println("Error in stream initialization"); //TODO
+			System.out.println("Error while initializing stream"); //TODO
 		}
 	}
-    // Client get function starts here
 
     public void receiveFile() throws Exception {
 		if (commandArgs.size() != 2) {
@@ -116,7 +111,7 @@ public class WorkerThread implements Runnable{
 		try {
 			terminateID = Integer.parseInt(bufferedReader.readLine());
 		} catch(Exception e) {
-			if (ClientThreadedMain.DEBUG_VARIABLE) System.out.println("Invalid TerminateID");
+			System.out.println("Invalid TerminateID");
 		}
 		
 		//locking client side
@@ -373,15 +368,15 @@ public class WorkerThread implements Runnable{
 		dataOutputStream.writeBytes("quit" + "\n");
 	}
 	
-	public void terminate() throws Exception {
+	public void abort() throws Exception {
 		
 		try {
 			int terminateID = Integer.parseInt(commandArgs.get(1));
 			if (!clientFtp.abortAppend(terminateID))
 				System.out.println("TerminateID is Invalid");
 			else
-			System.out.println("Machine ip" + machineip);
-			System.out.println("Tport " +tPort);
+			System.out.println("Machine ip = " + machineip);
+			System.out.println("Tport = " +tPort);
 			(new Thread(new TerminateWorkerThread(machineip, tPort, terminateID))).start();
 		} catch (Exception e) {
 			System.out.println("TerminateID is Invalid");
@@ -443,7 +438,7 @@ public class WorkerThread implements Runnable{
 					case "quit": 		quit(); 		
 										break;
 
-					case "terminate":	terminate();	
+					case "terminate":	abort();	
 										break;
 					
 					default:			System.out.println("Invalid command '" + commandArgs.get(0) + "'");
@@ -452,10 +447,10 @@ public class WorkerThread implements Runnable{
 			input.close();
 			
 			
-			System.out.println(ClientThreadedMain.EXIT_STRING);
+			System.out.println("FTP Client closed, see you again!");
 			System.exit(0);
 		} catch (Exception e) {
-			System.out.println("error: disconnected from host");
+			System.out.println("Disconnected from host due to some issue");
 			//e.printStackTrace(); //TODO
 		}
 	}

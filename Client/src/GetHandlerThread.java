@@ -44,34 +44,33 @@ public class GetHandlerThread implements Runnable {
 	public void receiveFile() throws Exception {
 		//moving the file already being moved
 		if (!clientFtp.move(serverPath.resolve(commandArgs.get(1)))) {
-			System.out.println("The file is on the move!!!");
+			System.out.println("Already getting the file from server");
 			return;
 		}
 		
 		//send command to server
 		dataOutputStream.writeBytes("get " + serverPath.resolve(commandArgs.get(1)) + "\n");
 		
-		//error messages
-		String get_line;
-		if (!(get_line = bufferedReader.readLine()).equals("")) {
-			System.out.println(get_line);
+		String errMsg;
+		if (!(errMsg = bufferedReader.readLine()).equals("")) {
+			System.out.println(errMsg);
 			return;
 		}
 		
-		//waiting to read terminate ID
+		//recieve terminate id from server
 		try {
 			terminateID = Integer.parseInt(bufferedReader.readLine());
 		} catch(Exception e) {
-			if (ClientThreadedMain.DEBUG_VARIABLE) System.out.println("Terminate ID not valid");
+			System.out.println("Terminate ID not valid");
 		}
 		System.out.println("TerminateID: " + terminateID);
 		
-		//locking client side
+		//Set lock on client side for Get operation
 		clientFtp.moveIn(serverPath.resolve(commandArgs.get(1)), terminateID);
 		
 		if (clientFtp.abortGet(path.resolve(commandArgs.get(1)), serverPath.resolve(commandArgs.get(1)), terminateID)) return;
 		
-		//get file size
+		//fetch file size
 		byte[] fileSizeBuffer = new byte[8];
 		dataInputStream.read(fileSizeBuffer);
 		ByteArrayInputStream bais = new ByteArrayInputStream(fileSizeBuffer);
@@ -80,7 +79,7 @@ public class GetHandlerThread implements Runnable {
 		
 		if (clientFtp.abortGet(path.resolve(commandArgs.get(1)), serverPath.resolve(commandArgs.get(1)), terminateID)) return;
 		
-		//receive the file
+		//get content from file
 		FileOutputStream fileOutputStream = new FileOutputStream(new File(commandArgs.get(1)));
 		int count = 0;
 		byte[] buffer = new byte[8192];
@@ -96,7 +95,7 @@ public class GetHandlerThread implements Runnable {
 		}
 		fileOutputStream.close();
 		
-		//CLIENT side un-locking
+		//Release lock for client
 		clientFtp.moveOut(serverPath.resolve(commandArgs.get(1)), terminateID);
 	}
 	
@@ -106,7 +105,7 @@ public class GetHandlerThread implements Runnable {
 			Thread.sleep(100);
 			dataOutputStream.writeBytes("quit" + "\n");
 		} catch (Exception e) {
-			if (ClientThreadedMain.DEBUG_VARIABLE) System.out.println("ERROR IN GET HANDLER");
+			System.out.println("Error in getting the file from server");
 		}
 	}
 }

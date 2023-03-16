@@ -35,21 +35,21 @@ public class PutHandlerThread implements Runnable {
 	}
 
     public void sendFile() throws Exception {
-		//same transfer
+		//send file to server
 		if (!clientFTP.move(serverPath.resolve(commandArgs.get(1)))) {
-			System.out.println("error: file already transfering");
+			System.out.println("Already sending file to server");
 			return;
 		}
 		
-		//not a directory or file
+		//file not present at server
 		if (Files.notExists(path.resolve(commandArgs.get(1)))) {
-			System.out.println("put: " + commandArgs.get(1) + ": No such file or directory");
+			System.out.println("No such file present at the client");
 		} 
-		//is a directory
+		//requested file is a directory
 		else if (Files.isDirectory(path.resolve(commandArgs.get(1)))) {
-			System.out.println("put: " + commandArgs.get(1) + ": Is a directory");
+			System.out.println("Cannot send file as it is a directory");
 		}
-		//transfer file
+		//send content of file to server
 		else {
 			//send command
 			dataOutputStream.writeBytes("put " + serverPath.resolve(commandArgs.get(1)) + "\n");
@@ -58,20 +58,18 @@ public class PutHandlerThread implements Runnable {
 			try {
 				terminateID = Integer.parseInt(bufferedReader.readLine());
 			} catch(Exception e) {
-				System.out.println("Invalid TerminateID");
+				System.out.println("Invalid TerminateId");
 			}
-			System.out.println("TerminateID: " + terminateID);
+			System.out.println("TerminateId : " + terminateID);
 			
-			//CLIENT side locking
+			//Set lock on client side for Put operation
 			clientFTP.moveIn(serverPath.resolve(commandArgs.get(1)), terminateID);
 			
 			if (clientFTP.abortPut(serverPath.resolve(commandArgs.get(1)), terminateID)) 
                 return;
 			
-			//signal to start writing
-			bufferedReader.readLine();
 			
-			//need to figure
+			bufferedReader.readLine();
 			Thread.sleep(100);
 			
 			if (clientFTP.abortPut(serverPath.resolve(commandArgs.get(1)), terminateID)) return;
@@ -80,14 +78,14 @@ public class PutHandlerThread implements Runnable {
 			try {
 				File file = new File(path.resolve(commandArgs.get(1)).toString());
 				
-				//write long filesize as first 8 bytes
+				//send content in batches
 				long fileSize = file.length();
 				byte[] fileSizeBytes = ByteBuffer.allocate(8).putLong(fileSize).array();
 				dataOutputStream.write(fileSizeBytes, 0, 8);
 				
 				if (clientFTP.abortPut(serverPath.resolve(commandArgs.get(1)), terminateID)) return;
 				
-				//write file
+
 				BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
 				int count = 0;
 				while((count = in.read(buffer)) > 0) {
@@ -100,7 +98,7 @@ public class PutHandlerThread implements Runnable {
 				
 				in.close();
 			} catch(Exception e){
-				System.out.println("transfer error: " + commandArgs.get(1));
+				System.out.println("File transfer error");
 			}
 			
 			//CLIENT side un-locking
@@ -114,7 +112,7 @@ public class PutHandlerThread implements Runnable {
 			Thread.sleep(100);
 			dataOutputStream.writeBytes("quit" + "\n");
 		} catch (Exception e) {
-			System.out.println("PutWorker error");
+			System.out.println("Put operation failed");
 		}
 	}
 }

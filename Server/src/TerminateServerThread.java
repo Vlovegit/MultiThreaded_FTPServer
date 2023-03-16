@@ -17,31 +17,31 @@ public class TerminateServerThread implements Runnable {
     public void run() {
 		System.out.println(Thread.currentThread().getName() + " TerminateWorker Started");
 		try {
-			//Input
+			
 			InputStreamReader isr = new InputStreamReader(tSocket.getInputStream());
 			BufferedReader br = new BufferedReader(isr);
 			
-			//check every 10 ms for input
+			//check for commands from users regularly
 			while (!br.ready())
 				Thread.sleep(10);
 			
 			//capture and parse input
-			List<String> tokens = new ArrayList<String>();
+			List<String> commandArgs = new ArrayList<String>();
 			String command = br.readLine();
 			Scanner tokenize = new Scanner(command);
-			//gets command
+			//tokenize command
 			if (tokenize.hasNext())
-			    tokens.add(tokenize.next());
-			//gets rest of string after the command; this allows filenames with spaces: 'file1 test.txt'
+				commandArgs.add(tokenize.next());
+
 			if (tokenize.hasNext())
-				tokens.add(command.substring(tokens.get(0).length()).trim());
+				commandArgs.add(command.substring(commandArgs.get(0).length()).trim());
 			tokenize.close();
-			System.out.println(tokens.toString());
+			System.out.println(commandArgs.toString());
 			
 			//command selector
-			switch(tokens.get(0)) {
-				case "terminate":   serverFTP.terminate(Integer.parseInt(tokens.get(1)));
-                                    System.out.println("Terminate Command= " + tokens.get(1));
+			switch(commandArgs.get(0)) {
+				case "terminate":   serverFTP.abort(Integer.parseInt(commandArgs.get(1)));
+                                    System.out.println("Abort Command = " + commandArgs.get(1));
                                     break;
 				default:            System.out.println("Invalid command");
 			}

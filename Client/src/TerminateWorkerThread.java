@@ -22,9 +22,10 @@ public class TerminateWorkerThread implements Runnable {
 	
 	public void run() {
 		try {
+			System.out.println("Connected to terminate port established, terminating command now");
 			dataOutputStream.writeBytes("terminate " + terminateID + "\n");
 		} catch (IOException e) {
-			if (ClientThreadedMain.DEBUG_VARIABLE) System.out.println("Terminate Worker Thread");
+			System.out.println("Terminate Worker Thread");
 		}
 	}
 }

@@ -7,8 +7,6 @@ public class ClientThreadedMain {
 
     public static String machineip;
     public static int nPort, tPort;
-    public static final boolean DEBUG_VARIABLE = false;
-	public static final String EXIT_STRING = "FTP Session over!!!";
 
     public static void main(String[] args) {
 
