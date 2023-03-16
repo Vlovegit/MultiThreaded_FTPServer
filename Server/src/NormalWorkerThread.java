@@ -189,6 +189,7 @@ public class NormalWorkerThread implements Runnable{
 				//System.out.println("I am here");
 				dataOutputStream.writeBytes("Present working directory set to parent directory");
 				dataOutputStream.writeBytes("\n");
+				//pwd();
 			}
 			
 			else if (commandargs.get(1).equals("..")) {
@@ -204,8 +205,8 @@ public class NormalWorkerThread implements Runnable{
 					currentThreadDir = currentThreadDir.substring(0, currentThreadDir.lastIndexOf('/')).trim();
 					dataOutputStream.writeBytes("Present working direcotry changed");
 				}
-				
 				dataOutputStream.writeBytes("\n");
+				//pwd();
 			}
 			
 			else {

@@ -226,7 +226,22 @@ public class WorkerThread implements Runnable{
 	}
 	
 
-	public void listFiles() throws Exception {
+	public void listFiles(String command) throws Exception {
+		
+		try
+		{
+		if (command.contains("&")) {
+			
+			String tempCommand = command.substring(0, command.length() - 1);
+			
+			//System.out.println(tempCommand);
+			
+			(new Thread(new ThreadSpawnHandler(clientFtp, machineip, nPort, tempCommand))).start();
+			
+			Thread.sleep(50);
+			
+			return;
+		}
 		
 		//send command
 		dataOutputStream.writeBytes("ls" + "\n");
@@ -235,9 +250,28 @@ public class WorkerThread implements Runnable{
 		String serverResponse;
 		while (!(serverResponse = bufferedReader.readLine()).equals(""))
 		    System.out.println(serverResponse);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+
 	}
 
-	public void changeDirectory() throws Exception {
+	public void changeDirectory(String command) throws Exception {
+		
+		if (command.contains("&")) {
+			
+			String tempCommand = command.substring(0, command.length() - 1);
+			
+			//System.out.println(tempCommand);
+			
+			(new Thread(new ThreadSpawnHandler(clientFtp, machineip, nPort, tempCommand))).start();
+			
+			Thread.sleep(50);
+			System.out.println("This is changed in spawned off thread but will not reflect in main thread");
+			return;
+		}
 		
 		if (commandArgs.size() == 1) 
 			dataOutputStream.writeBytes("cd" + "\n");
@@ -252,12 +286,76 @@ public class WorkerThread implements Runnable{
 		System.out.println(bufferedReader.readLine());
 	}
 
-	public void createDirectory() throws Exception {
+	public void createDirectory(String command) throws Exception {
+		
+		if (command.contains("&")) {
+			
+			String tempCommand = command.substring(0, command.length() - 1);
+			
+			//System.out.println(tempCommand);
+			
+			(new Thread(new ThreadSpawnHandler(clientFtp, machineip, nPort, tempCommand))).start();
+			
+			Thread.sleep(50);
+			return;
+		}
 		
 		dataOutputStream.writeBytes("mkdir " + commandArgs.get(1) + "\n");
 		String serverResponse;
 		if (!(serverResponse = bufferedReader.readLine()).equals(""))
 			System.out.println(serverResponse);
+	}
+
+	public void pwd(String command)
+	{
+		try {
+
+			if (command.contains("&")) {
+			
+				String tempCommand = command.substring(0, command.length() - 1);
+				
+				//System.out.println(tempCommand);
+				
+				(new Thread(new ThreadSpawnHandler(clientFtp, machineip, nPort, tempCommand))).start();
+				
+				Thread.sleep(50);
+				
+				return;
+			}
+			
+			dataOutputStream.writeBytes("pwd" + "\n");
+			System.out.println(bufferedReader.readLine());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public void delete(String command)
+	{
+		
+		
+		try {
+
+			if (command.contains("&")) {
+			
+				String tempCommand = command.substring(0, command.length() - 1);
+				
+				//System.out.println(tempCommand);
+				
+				(new Thread(new ThreadSpawnHandler(clientFtp, machineip, nPort, tempCommand))).start();
+				
+				Thread.sleep(50);
+				
+				return;
+			}
+			dataOutputStream.writeBytes("delete " + commandArgs.get(1) + "\n");
+			System.out.println(bufferedReader.readLine());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 
 
@@ -327,21 +425,19 @@ public class WorkerThread implements Runnable{
 					case "put": 		sendFile(); 			
 										break;
 					
-					case "delete": 		dataOutputStream.writeBytes("delete " + commandArgs.get(1) + "\n");
-										System.out.println(bufferedReader.readLine());
+					case "delete": 		delete(command);
 										break;
 
-					case "ls": 			listFiles();		
+					case "ls": 			listFiles(command);		
 										break;
 
-					case "cd": 			changeDirectory(); 			
+					case "cd": 			changeDirectory(command); 			
 										break;
 
-					case "mkdir": 		createDirectory(); 		
+					case "mkdir": 		createDirectory(command); 		
 										break;
 					
-					case "pwd": 		dataOutputStream.writeBytes("pwd" + "\n");
-										System.out.println(bufferedReader.readLine());			
+					case "pwd": 		pwd(command);		
 										break;
 
 					case "quit": 		quit(); 		
@@ -357,6 +453,7 @@ public class WorkerThread implements Runnable{
 			
 			
 			System.out.println(ClientThreadedMain.EXIT_STRING);
+			System.exit(0);
 		} catch (Exception e) {
 			System.out.println("error: disconnected from host");
 			//e.printStackTrace(); //TODO

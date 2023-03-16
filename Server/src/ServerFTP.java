@@ -1,4 +1,3 @@
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -33,7 +32,7 @@ public class ServerFTP {
 	}
 
     public int generateID() {
-		return new Random().nextInt(90000) + 10000;
+		return new Random().nextInt(70000) + 10000;
 	}
 	
 	public synchronized boolean delete(Path path) {
