@@ -232,6 +232,18 @@ public class NormalWorkerThread implements Runnable{
 		}
 	}
 
+	public void createDirectory() throws Exception {
+		try {
+			Files.createDirectory(path.resolve(commandargs.get(1)));
+			dataOutputStream.writeBytes("Directory created Successfully");
+			dataOutputStream.writeBytes("\n");
+		} catch(FileAlreadyExistsException falee) {
+			dataOutputStream.writeBytes("Directory creation failed as it already exists" + "\n");
+		} catch(Exception e) {
+			dataOutputStream.writeBytes("Directory creation failed" + "\n");
+		}
+	}
+
 	public void delete() throws Exception {
 		if (!serverFTP.delete(path.resolve(commandargs.get(1)))) {
 			dataOutputStream.writeBytes("Cannot delete file as it is locked" + "\n");
@@ -301,7 +313,9 @@ public class NormalWorkerThread implements Runnable{
 					case "cd": 		changeDirectory();		
 									break;
 
-					//case "mkdir": 	mkdir();	break;
+					case "mkdir": 	createDirectory();	
+									break;
+
 					case "pwd": 	pwd();		
 									break;
 
@@ -314,7 +328,7 @@ public class NormalWorkerThread implements Runnable{
 				break exitThread;
 			}
 		}
-		System.out.println(Thread.currentThread().getName() + " NormalWorker Exited");
+		System.out.println(Thread.currentThread().getName() + " Normal Worker Thread Exited");
 	}
     
 }

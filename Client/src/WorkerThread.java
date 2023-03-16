@@ -149,9 +149,9 @@ public class WorkerThread implements Runnable{
 		dataOutputStream.writeBytes("ls" + "\n");
 		
 		//messages
-		String ls_line;
-		while (!(ls_line = bufferedReader.readLine()).equals(""))
-		    System.out.println(ls_line);
+		String serverResponse;
+		while (!(serverResponse = bufferedReader.readLine()).equals(""))
+		    System.out.println(serverResponse);
 	}
 
 	public void changeDirectory() throws Exception {
@@ -161,12 +161,20 @@ public class WorkerThread implements Runnable{
 		else
 			dataOutputStream.writeBytes("cd " + commandArgs.get(1) + "\n");
 		
-		String cd_line;
-		if (!(cd_line = bufferedReader.readLine()).equals(""))
-			System.out.println(cd_line);
+		String serverResponse;
+		if (!(serverResponse = bufferedReader.readLine()).equals(""))
+			System.out.println(serverResponse);
 		
 		dataOutputStream.writeBytes("pwd" + "\n");
 		System.out.println(bufferedReader.readLine());
+	}
+
+	public void createDirectory() throws Exception {
+		
+		dataOutputStream.writeBytes("mkdir " + commandArgs.get(1) + "\n");
+		String serverResponse;
+		if (!(serverResponse = bufferedReader.readLine()).equals(""))
+			System.out.println(serverResponse);
 	}
 
 
@@ -243,7 +251,8 @@ public class WorkerThread implements Runnable{
 					case "cd": 			changeDirectory(); 			
 										break;
 
-					//case "mkdir": 		mkdir(); 		break;
+					case "mkdir": 		createDirectory(); 		
+										break;
 					
 					case "pwd": 		dataOutputStream.writeBytes("pwd" + "\n");
 										System.out.println(bufferedReader.readLine());			
