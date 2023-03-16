@@ -52,6 +52,7 @@ public class ClientThreadedMain {
 		}
 		catch (Exception e) {
 			e.printStackTrace();
+			
 		}
 
 

@@ -211,7 +211,13 @@ public class WorkerThread implements Runnable{
 					dataOutputStream.write(buffer, 0, count);
 				
 				in.close();
-			} catch(Exception e){
+			}
+			catch(SocketException se)
+			{
+			System.out.println("Connection lost to the server.. Exiting now");
+			System.exit(0);
+			}
+			 catch(Exception e){
 				System.out.println("Client file transfer failed");
 			}
 			
@@ -245,6 +251,11 @@ public class WorkerThread implements Runnable{
 		String serverResponse;
 		while (!(serverResponse = bufferedReader.readLine()).equals(""))
 		    System.out.println(serverResponse);
+		}
+		catch(SocketException se)
+		{
+			System.out.println("Connection lost to the server.. Exiting now");
+			System.exit(0);
 		}
 		catch(Exception e)
 		{
@@ -320,7 +331,13 @@ public class WorkerThread implements Runnable{
 			
 			dataOutputStream.writeBytes("pwd" + "\n");
 			System.out.println(bufferedReader.readLine());
-		} catch (Exception e) {
+		} 
+		catch(SocketException se)
+		{
+			System.out.println("Connection lost to the server.. Exiting now");
+			System.exit(0);
+		}
+		catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -346,7 +363,13 @@ public class WorkerThread implements Runnable{
 			}
 			dataOutputStream.writeBytes("delete " + commandArgs.get(1) + "\n");
 			System.out.println(bufferedReader.readLine());
-		} catch (Exception e) {
+		} 
+		catch(SocketException se)
+		{
+			System.out.println("Connection lost to the server.. Exiting now");
+			System.exit(0);
+		}
+		catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -375,10 +398,17 @@ public class WorkerThread implements Runnable{
 			if (!clientFtp.abortAppend(terminateID))
 				System.out.println("TerminateID is Invalid");
 			else
+			System.out.println("Connecting to terminate port at Server side");
 			System.out.println("Machine ip = " + machineip);
 			System.out.println("Tport = " +tPort);
 			(new Thread(new TerminateWorkerThread(machineip, tPort, terminateID))).start();
-		} catch (Exception e) {
+		} 
+		catch(SocketException se)
+		{
+			System.out.println("Connection lost to the server.. Exiting now");
+			System.exit(0);
+		}
+		catch (Exception e) {
 			System.out.println("TerminateID is Invalid");
 			e.printStackTrace();
 		}
@@ -451,6 +481,7 @@ public class WorkerThread implements Runnable{
 			System.exit(0);
 		} catch (Exception e) {
 			System.out.println("Disconnected from host due to some issue");
+			System.exit(0);
 			//e.printStackTrace(); //TODO
 		}
 	}
