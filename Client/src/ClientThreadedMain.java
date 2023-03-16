@@ -31,11 +31,13 @@ public class ClientThreadedMain {
 			nPort = Integer.parseInt(args[1]);
 			tPort = Integer.parseInt(args[2]);
 
+			//System.out.println("tport"+ tPort);
+
             
             ClientFTP clientFtp = new ClientFTP();
 			
 			//The initial thread
-			(new Thread(new WorkerThread(clientFtp, machineip, nPort))).start();
+			(new Thread(new WorkerThread(clientFtp, machineip, nPort, tPort))).start();
 
 		} catch(ConnectException ce)
 		{

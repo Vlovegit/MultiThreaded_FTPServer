@@ -2,6 +2,7 @@
 import java.io.*;
 import java.net.*;
 import java.nio.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -11,6 +12,7 @@ public class WorkerThread implements Runnable{
 
     private ClientFTP clientFtp;
 	private int nPort;
+	private int tPort;
     private Socket socket;
     private int terminateID;
 	private String machineip;
@@ -28,10 +30,11 @@ public class WorkerThread implements Runnable{
 	//Public Constructor
 
 
-    public WorkerThread(ClientFTP clientFtp, String machineip, int nPort) throws Exception {
+    public WorkerThread(ClientFTP clientFtp, String machineip, int nPort, int tPort) throws Exception {
 		this.clientFtp = clientFtp;
 		this.machineip = machineip;
 		this.nPort = nPort;
+		this.tPort = tPort;
 		
 		//Connecting to server
 		InetAddress ip = InetAddress.getByName(machineip);
@@ -143,6 +146,86 @@ public class WorkerThread implements Runnable{
 		clientFtp.moveOut(serverPath.resolve(commandArgs.get(1)), terminateID);
 	}
 
+	public void sendFile() throws Exception {
+		
+		if (commandArgs.get(1).endsWith(" &")) {
+			commandArgs.set(1, commandArgs.get(1).substring(0, commandArgs.get(1).length()-1).trim());
+			//background
+			
+			List<String> tempList = new ArrayList<String>(commandArgs);
+			Path tempPath = Paths.get(serverPath.toString());
+			
+			(new Thread(new PutHandlerThread(clientFtp, machineip, nPort, tempList, tempPath))).start();
+			
+			Thread.sleep(50);
+			
+			return;
+		}
+		
+		//same transfer
+		if (!clientFtp.move(serverPath.resolve(commandArgs.get(1)))) {
+			System.out.println("error: file already transfering");
+			return;
+		}
+		
+		//not a directory or file
+		if (Files.notExists(path.resolve(commandArgs.get(1)))) {
+			System.out.println("put: " + commandArgs.get(1) + ": No such file or directory");
+		} 
+		//is a directory
+		else if (Files.isDirectory(path.resolve(commandArgs.get(1)))) {
+			System.out.println("put: " + commandArgs.get(1) + ": Is a directory");
+		}
+		//transfer file
+		else {
+			//send command
+			dataOutputStream.writeBytes("put " + serverPath.resolve(commandArgs.get(1)) + "\n");
+			
+			//wait for terminate ID
+			try {
+				terminateID = Integer.parseInt(bufferedReader.readLine());
+			} catch(Exception e) {
+				System.out.println("Invalid TerminateID");
+			}
+			
+			//CLIENT side locking
+			clientFtp.moveIn(serverPath.resolve(commandArgs.get(1)), terminateID);
+			
+			//signal to start writing
+			bufferedReader.readLine();
+			
+			//need to figure
+			Thread.sleep(100);
+			
+			
+			byte[] buffer = new byte[1000];
+			try {
+				File file = new File(path.resolve(commandArgs.get(1)).toString());
+				
+				//write long filesize as first 8 bytes
+				long fileSize = file.length();
+				byte[] fileSizeBytes = ByteBuffer.allocate(8).putLong(fileSize).array();
+				dataOutputStream.write(fileSizeBytes, 0, 8);
+				
+				Thread.sleep(100);
+				
+				//write file
+				BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
+				int count = 0;
+				while((count = in.read(buffer)) > 0)
+					dataOutputStream.write(buffer, 0, count);
+				
+				in.close();
+			} catch(Exception e){
+				System.out.println("Client file transfer failed");
+			}
+			
+			//CLIENT side un-locking
+			clientFtp.moveOut(serverPath.resolve(commandArgs.get(1)), terminateID);
+		}
+	}
+	
+
 	public void listFiles() throws Exception {
 		
 		//send command
@@ -199,7 +282,9 @@ public class WorkerThread implements Runnable{
 			if (!clientFtp.abortAppend(terminateID))
 				System.out.println("TerminateID is Invalid");
 			else
-				(new Thread(new TerminateWorkerThread(machineip, ClientThreadedMain.tPort, terminateID))).start();
+			System.out.println("Machine ip" + machineip);
+			System.out.println("Tport " +tPort);
+			(new Thread(new TerminateWorkerThread(machineip, tPort, terminateID))).start();
 		} catch (Exception e) {
 			System.out.println("TerminateID is Invalid");
 			e.printStackTrace();
@@ -225,7 +310,7 @@ public class WorkerThread implements Runnable{
 				if (tokenize.hasNext())
 					commandArgs.add(command.substring(commandArgs.get(0).length()).trim());
 				tokenize.close();
-				//System.out.println(commandArgs);
+				
 				
 				if (commandArgs.isEmpty())
 				{
@@ -233,13 +318,14 @@ public class WorkerThread implements Runnable{
 					continue;
 				}
 				
-				//command selector
+				
 				switch(commandArgs.get(0)) 
 				{
 					case "get": 		receiveFile(); 			
 										break;
 
-					//case "put": 		put(); 			break;
+					case "put": 		sendFile(); 			
+										break;
 					
 					case "delete": 		dataOutputStream.writeBytes("delete " + commandArgs.get(1) + "\n");
 										System.out.println(bufferedReader.readLine());
@@ -273,7 +359,7 @@ public class WorkerThread implements Runnable{
 			System.out.println(ClientThreadedMain.EXIT_STRING);
 		} catch (Exception e) {
 			System.out.println("error: disconnected from host");
-			if (ClientThreadedMain.DEBUG_VARIABLE) e.printStackTrace(); //TODO
+			//e.printStackTrace(); //TODO
 		}
 	}
 	

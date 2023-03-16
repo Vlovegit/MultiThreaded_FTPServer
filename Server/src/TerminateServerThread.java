@@ -5,11 +5,11 @@ import java.util.*;
 
 
 
-public class TerminateWorkerThread implements Runnable {
+public class TerminateServerThread implements Runnable {
 	private ServerFTP serverFTP;
 	private Socket tSocket;
 	
-	public TerminateWorkerThread(ServerFTP serverFTP, Socket tSocket) {
+	public TerminateServerThread(ServerFTP serverFTP, Socket tSocket) {
 		this.serverFTP = serverFTP;
 		this.tSocket = tSocket;
 	}

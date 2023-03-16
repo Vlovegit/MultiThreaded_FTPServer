@@ -90,7 +90,7 @@ public class NormalWorkerThread implements Runnable{
 				}
 				dataOutputStream.write(buffer, 0, count);
 			}
-			
+			serverFTP.getOUT(path.resolve(commandargs.get(1)), lockID);
 			in.close();
 		} catch(Exception e) {
 			System.out.println("transfer error: " + commandargs.get(1));
@@ -99,7 +99,7 @@ public class NormalWorkerThread implements Runnable{
 		////////////
 		// UNLOCK //
 		////////////
-		serverFTP.getOUT(path.resolve(commandargs.get(1)), lockID);
+		//serverFTP.getOUT(path.resolve(commandargs.get(1)), lockID);
 	}
 
     public void receiveFile() throws Exception {
@@ -181,13 +181,13 @@ public class NormalWorkerThread implements Runnable{
 		try {
 
 			
-			System.out.println("Command Size" + commandargs.size());
+			//System.out.println("Command Size" + commandargs.size());
 			if (commandargs.size() == 1) 
 			{
 				path = Paths.get(System.getProperty("user.dir"));
 				currentThreadDir = System.getProperty("user.dir");
-				System.out.println("I am here");
-				dataOutputStream.writeBytes("Present working directory changed");
+				//System.out.println("I am here");
+				dataOutputStream.writeBytes("Present working directory set to parent directory");
 				dataOutputStream.writeBytes("\n");
 			}
 			
