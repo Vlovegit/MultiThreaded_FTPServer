@@ -7,18 +7,18 @@ import java.util.*;
 
 public class TerminateServerThread implements Runnable {
 	private ServerFTP serverFTP;
-	private Socket tSocket;
+	private Socket tServerSocket;
 	
-	public TerminateServerThread(ServerFTP serverFTP, Socket tSocket) {
+	public TerminateServerThread(ServerFTP serverFTP, Socket tServerSocket) {
 		this.serverFTP = serverFTP;
-		this.tSocket = tSocket;
+		this.tServerSocket = tServerSocket;
 	}
 
     public void run() {
-		System.out.println(Thread.currentThread().getName() + " TerminateWorker Started");
+		System.out.println("//// " + Thread.currentThread().getName() + " TerminateWorker Started ////");
 		try {
 			
-			InputStreamReader isr = new InputStreamReader(tSocket.getInputStream());
+			InputStreamReader isr = new InputStreamReader(tServerSocket.getInputStream());
 			BufferedReader br = new BufferedReader(isr);
 			
 			//check for commands from users regularly
@@ -48,6 +48,6 @@ public class TerminateServerThread implements Runnable {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		System.out.println(Thread.currentThread().getName() + " TerminateWorkerThread Closed");
+		System.out.println("//// " + Thread.currentThread().getName() + " TerminateWorkerThread Closed ////");
 	}
 }

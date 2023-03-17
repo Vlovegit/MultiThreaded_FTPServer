@@ -6,15 +6,16 @@ import java.nio.file.*;
 import java.util.List;
 
 public class PutHandlerThread implements Runnable {
+	private InputStreamReader inputStreamReader;
+	private BufferedReader bufferedReader;
+	private OutputStream outputStream;
+	private DataOutputStream dataOutputStream;
 	private ClientFTP clientFTP;
 	private Socket socket;
 	private Path path, serverPath;
 	private List<String> commandArgs;
 	private int terminateID;
-	private InputStreamReader inputStreamReader;
-	private BufferedReader bufferedReader;
-	private OutputStream outputStream;
-	private DataOutputStream dataOutputStream;
+	
 	
 	
 	public PutHandlerThread(ClientFTP clientFTP, String hostname, int nPort, List<String> commandArgs, Path serverPath) throws Exception {

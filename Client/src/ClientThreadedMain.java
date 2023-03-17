@@ -28,9 +28,6 @@ public class ClientThreadedMain {
 			machineip = args[0];
 			nPort = Integer.parseInt(args[1]);
 			tPort = Integer.parseInt(args[2]);
-
-			//System.out.println("tport"+ tPort);
-
             
             ClientFTP clientFtp = new ClientFTP();
 			

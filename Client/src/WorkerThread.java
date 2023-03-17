@@ -1,4 +1,3 @@
-
 import java.io.*;
 import java.net.*;
 import java.nio.*;
@@ -62,9 +61,9 @@ public class WorkerThread implements Runnable{
 			dataOutputStream.writeBytes("pwd" + "\n");
 			
 			//set present working directory at client side
-			String get_line;
-			if (!(get_line = bufferedReader.readLine()).equals("")) {
-				serverPath = Paths.get(get_line);
+			String serverResponse;
+			if (!(serverResponse = bufferedReader.readLine()).equals("")) {
+				serverPath = Paths.get(serverResponse);
 			}
 		} catch (Exception e) {
 			System.out.println("Error while initializing stream"); //TODO
@@ -73,7 +72,7 @@ public class WorkerThread implements Runnable{
 
     public void receiveFile() throws Exception {
 		if (commandArgs.size() != 2) {
-			invalid();
+			invalidArgsCheck();
 			return;
 		}
 		
@@ -81,10 +80,10 @@ public class WorkerThread implements Runnable{
 			commandArgs.set(1, commandArgs.get(1).substring(0, commandArgs.get(1).length()-1).trim());
 			
 			List<String> tempList = new ArrayList<String>(commandArgs);
-			Path tempPath = Paths.get(serverPath.toString());
-			Path tempPathClient = Paths.get(path.toString());
+			Path pathTmp = Paths.get(serverPath.toString());
+			Path clientTmpPath = Paths.get(path.toString());
 			
-			(new Thread(new GetHandlerThread(clientFtp, machineip, nPort, tempList, tempPath, tempPathClient))).start();
+			(new Thread(new GetHandlerThread(clientFtp, machineip, nPort, tempList, pathTmp, clientTmpPath))).start();
 			
 			Thread.sleep(50);
 			
@@ -101,9 +100,9 @@ public class WorkerThread implements Runnable{
 		dataOutputStream.writeBytes("get " + serverPath.resolve(commandArgs.get(1)) + "\n");
 		
 		//printing error message
-		String get_line;
-		if (!(get_line = bufferedReader.readLine()).equals("")) {
-			System.out.println(get_line);
+		String serverResponse;
+		if (!(serverResponse = bufferedReader.readLine()).equals("")) {
+			System.out.println(serverResponse);
 			return;
 		}
 		
@@ -119,10 +118,10 @@ public class WorkerThread implements Runnable{
 		
 		
 		//getting file size
-		byte[] fileSizeBuffer = new byte[8];
-		dataInputStream.read(fileSizeBuffer);
-		ByteArrayInputStream bais = new ByteArrayInputStream(fileSizeBuffer);
-		DataInputStream in = new DataInputStream(bais);
+		byte[] fsb = new byte[8];
+		dataInputStream.read(fsb);
+		ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(fsb);
+		DataInputStream in = new DataInputStream(byteArrayInputStream);
 		long fileSize = in.readLong();
 		
 		//receiving the file
@@ -137,7 +136,7 @@ public class WorkerThread implements Runnable{
 		}
 		fileOutputStream.close();
 		
-		//CLIENT side un-locking
+		//Releae client receive lock
 		clientFtp.moveOut(serverPath.resolve(commandArgs.get(1)), terminateID);
 	}
 
@@ -145,33 +144,32 @@ public class WorkerThread implements Runnable{
 		
 		if (commandArgs.get(1).endsWith(" &")) {
 			commandArgs.set(1, commandArgs.get(1).substring(0, commandArgs.get(1).length()-1).trim());
-			//background
 			
 			List<String> tempList = new ArrayList<String>(commandArgs);
-			Path tempPath = Paths.get(serverPath.toString());
+			Path pathTmp = Paths.get(serverPath.toString());
 			
-			(new Thread(new PutHandlerThread(clientFtp, machineip, nPort, tempList, tempPath))).start();
+			(new Thread(new PutHandlerThread(clientFtp, machineip, nPort, tempList, pathTmp))).start();
 			
 			Thread.sleep(50);
 			
 			return;
 		}
 		
-		//same transfer
+		//File is already on the move
 		if (!clientFtp.move(serverPath.resolve(commandArgs.get(1)))) {
-			System.out.println("error: file already transfering");
+			System.out.println("File is already on the move");
 			return;
 		}
 		
 		//not a directory or file
 		if (Files.notExists(path.resolve(commandArgs.get(1)))) {
-			System.out.println("put: " + commandArgs.get(1) + ": No such file or directory");
+			System.out.println("No such file or directory present at client");
 		} 
 		//is a directory
 		else if (Files.isDirectory(path.resolve(commandArgs.get(1)))) {
-			System.out.println("put: " + commandArgs.get(1) + ": Is a directory");
+			System.out.println(" Requested file is a directory");
 		}
-		//transfer file
+		//move file
 		else {
 			//send command
 			dataOutputStream.writeBytes("put " + serverPath.resolve(commandArgs.get(1)) + "\n");
@@ -183,13 +181,11 @@ public class WorkerThread implements Runnable{
 				System.out.println("Invalid TerminateID");
 			}
 			
-			//CLIENT side locking
+			//Get client Send lock
 			clientFtp.moveIn(serverPath.resolve(commandArgs.get(1)), terminateID);
 			
-			//signal to start writing
 			bufferedReader.readLine();
 			
-			//need to figure
 			Thread.sleep(100);
 			
 			
@@ -197,7 +193,6 @@ public class WorkerThread implements Runnable{
 			try {
 				File file = new File(path.resolve(commandArgs.get(1)).toString());
 				
-				//write long filesize as first 8 bytes
 				long fileSize = file.length();
 				byte[] fileSizeBytes = ByteBuffer.allocate(8).putLong(fileSize).array();
 				dataOutputStream.write(fileSizeBytes, 0, 8);
@@ -221,7 +216,7 @@ public class WorkerThread implements Runnable{
 				System.out.println("Client file transfer failed");
 			}
 			
-			//CLIENT side un-locking
+			//Release Client Send Lock
 			clientFtp.moveOut(serverPath.resolve(commandArgs.get(1)), terminateID);
 		}
 	}
@@ -235,8 +230,6 @@ public class WorkerThread implements Runnable{
 			
 			String tempCommand = command.substring(0, command.length() - 1);
 			
-			//System.out.println(tempCommand);
-			
 			(new Thread(new ThreadSpawnHandler(clientFtp, machineip, nPort, tempCommand))).start();
 			
 			Thread.sleep(50);
@@ -244,10 +237,8 @@ public class WorkerThread implements Runnable{
 			return;
 		}
 		
-		//send command
 		dataOutputStream.writeBytes("ls" + "\n");
 		
-		//messages
 		String serverResponse;
 		while (!(serverResponse = bufferedReader.readLine()).equals(""))
 		    System.out.println(serverResponse);
@@ -270,7 +261,6 @@ public class WorkerThread implements Runnable{
 			
 			String tempCommand = command.substring(0, command.length() - 1);
 			
-			//System.out.println(tempCommand);
 			
 			(new Thread(new ThreadSpawnHandler(clientFtp, machineip, nPort, tempCommand))).start();
 			
@@ -378,7 +368,7 @@ public class WorkerThread implements Runnable{
 
 
 
-    public void invalid() {
+    public void invalidArgsCheck() {
 		System.out.println("Invalid Arguments Entered");
 	}
 
@@ -426,13 +416,13 @@ public class WorkerThread implements Runnable{
 				command = input.nextLine();
 				command = command.trim();
 				commandArgs = new ArrayList<String>();
-				Scanner tokenize = new Scanner(command);
-				if (tokenize.hasNext())
-				    commandArgs.add(tokenize.next());
+				Scanner split = new Scanner(command);
+				if (split.hasNext())
+				    commandArgs.add(split.next());
 
-				if (tokenize.hasNext())
+				if (split.hasNext())
 					commandArgs.add(command.substring(commandArgs.get(0).length()).trim());
-				tokenize.close();
+				split.close();
 				
 				
 				if (commandArgs.isEmpty())

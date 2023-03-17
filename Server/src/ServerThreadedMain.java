@@ -3,7 +3,6 @@ import java.net.*;
 
 public class ServerThreadedMain {
 
-    public static final boolean DEBUG = false;
 	private static ServerSocket nSocket, tSocket;
     
     public static void main(String[] args) {
@@ -39,7 +38,7 @@ public class ServerThreadedMain {
                 (new Thread(new TerminateMainThread(serverFTP, tSocket))).start();
             } catch (Exception e) {
                 System.out.println("Error creating a new thread");
-                e.printStackTrace(); //TODO
+                e.printStackTrace(); 
                 return;
             }
         }

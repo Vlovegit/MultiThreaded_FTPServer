@@ -6,27 +6,28 @@ import java.nio.ByteBuffer;
 
 public class NormalWorkerThread implements Runnable{
 
-    private ServerFTP serverFTP;
-	private Socket nSocket;
-	private Path path;
+    private Path path;
 	private List<String> commandargs;
 	private String currentThreadDir;
-	InputStreamReader isr;
-	BufferedReader br;
+	private ServerFTP serverFTP;
+	private Socket nSocket;
 	DataInputStream dataInputStream;
     DataOutputStream dataOutputStream;
 	OutputStream os;
+	InputStreamReader isr;
+	BufferedReader br;
 	
     public NormalWorkerThread(ServerFTP serverFTP, Socket nSocket) throws Exception {
-		this.serverFTP = serverFTP;
 		this.nSocket = nSocket;
+		this.serverFTP = serverFTP;
 		path = Paths.get(System.getProperty("user.dir"));
 		currentThreadDir = System.getProperty("user.dir");
 		isr = new InputStreamReader(nSocket.getInputStream());
 		br = new BufferedReader(isr);
-		dataInputStream = new DataInputStream(nSocket.getInputStream());
 		os = nSocket.getOutputStream();
 		dataOutputStream = new DataOutputStream(os);
+		dataInputStream = new DataInputStream(nSocket.getInputStream());
+		
 	}
 
     public void sendFile() throws Exception {
@@ -61,13 +62,13 @@ public class NormalWorkerThread implements Runnable{
 		}
 		
 		//transfer content in batches
-		byte[] buffer = new byte[1000];
+		byte[] bf = new byte[1000];
 		try {
 			File file = new File(path.resolve(commandargs.get(1)).toString());
 			
 			long fileSize = file.length();
-			byte[] fileSizeBytes = ByteBuffer.allocate(8).putLong(fileSize).array();
-			dataOutputStream.write(fileSizeBytes, 0, 8);
+			byte[] fsb = ByteBuffer.allocate(8).putLong(fileSize).array();
+			dataOutputStream.write(fsb, 0, 8);
 			
 			//Operation terminated from client side
 			if (serverFTP.abortGet(path.resolve(commandargs.get(1)), lockId)) {
@@ -78,13 +79,13 @@ public class NormalWorkerThread implements Runnable{
 			//send file to client
 			BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
 			int count = 0;
-			while((count = in.read(buffer)) > 0) {
+			while((count = in.read(bf)) > 0) {
 				if (serverFTP.abortGet(path.resolve(commandargs.get(1)), lockId)) {
 					in.close();
 					quit();
 					return;
 				}
-				dataOutputStream.write(buffer, 0, count);
+				dataOutputStream.write(bf, 0, count);
 			}
 
 			//release lock for get operation
@@ -122,9 +123,9 @@ public class NormalWorkerThread implements Runnable{
 			return;
 		}
 		
-		byte[] fileSizeBuffer = new byte[8];
-		dataInputStream.read(fileSizeBuffer);
-		ByteArrayInputStream bais = new ByteArrayInputStream(fileSizeBuffer);
+		byte[] buffer = new byte[8];
+		dataInputStream.read(buffer);
+		ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
 		DataInputStream dis = new DataInputStream(bais);
 		long fileSize = dis.readLong();
 		
@@ -134,10 +135,10 @@ public class NormalWorkerThread implements Runnable{
 		}
 		
 		FileOutputStream f = new FileOutputStream(new File(commandargs.get(1)).toString());
+		long bytesCompleted = 0;
 		int count = 0;
-		byte[] buffer = new byte[1000];
-		long bytesReceived = 0;
-		while(bytesReceived < fileSize) {
+		byte[] bf = new byte[1000];
+		while(bytesCompleted < fileSize) {
 
 			//Operation terminated from client side
 			if (serverFTP.abortPut(path.resolve(commandargs.get(1)), lockId)) {
@@ -145,9 +146,9 @@ public class NormalWorkerThread implements Runnable{
 				quit();
 				return;
 			}
-			count = dataInputStream.read(buffer);
-			f.write(buffer, 0, count);
-			bytesReceived += count;
+			count = dataInputStream.read(bf);
+			f.write(bf, 0, count);
+			bytesCompleted += count;
 		}
 		f.close();
 		//release lock for put operation
@@ -240,6 +241,7 @@ public class NormalWorkerThread implements Runnable{
 	}
 
 	public void delete() throws Exception {
+		
 		if (!serverFTP.remove(path.resolve(commandargs.get(1)))) {
 			dataOutputStream.writeBytes("Cannot delete file as it is locked" + "\n");
 			dataOutputStream.writeBytes("\n");
@@ -280,13 +282,13 @@ public class NormalWorkerThread implements Runnable{
 				//tokenize input into tokens
 				commandargs = new ArrayList<String>();
 				String cmd = br.readLine();
-				Scanner tokenize = new Scanner(cmd);
-				if (tokenize.hasNext())
-				    commandargs.add(tokenize.next());
+				Scanner split = new Scanner(cmd);
+				if (split.hasNext())
+				    commandargs.add(split.next());
 				
-				if (tokenize.hasNext())
+				if (split.hasNext())
 					commandargs.add(cmd.substring(commandargs.get(0).length()).trim());
-				tokenize.close();
+				split.close();
 				System.out.println("Sent from Client : "+ cmd);
 				
 				

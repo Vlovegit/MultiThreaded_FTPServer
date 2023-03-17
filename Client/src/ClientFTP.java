@@ -1,4 +1,3 @@
-import java.nio.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -23,7 +22,9 @@ public class ClientFTP {
 		try {
 			moveSet.remove(path);
 			filePathMapper.remove(commandID);
-		} catch(Exception e) {}
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	public synchronized void moveIn(Path path, int commandID) {
@@ -47,7 +48,9 @@ public class ClientFTP {
 				abortSet.remove(commandID);
 				return true;
 			}
-		} catch (Exception e) {}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		return false;
 	}
@@ -61,7 +64,9 @@ public class ClientFTP {
 				Files.deleteIfExists(path);
 				return true;
 			}
-		} catch (Exception e) {}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		return false;
 	}

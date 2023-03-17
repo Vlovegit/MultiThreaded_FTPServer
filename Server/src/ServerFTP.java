@@ -4,16 +4,18 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ServerFTP {
+    
+    private Queue<Integer> putQueue;
+	private Set<Integer> abortSet;
     private Map<Path, ReentrantReadWriteLock> fileStatus;
 	private Map<Integer, Path> filePathMapper;
-	private Queue<Integer> putQueue;
-	private Set<Integer> abortSet;
+	
 
     public ServerFTP() {
-		fileStatus = new HashMap<Path, ReentrantReadWriteLock>();
-		filePathMapper = new HashMap<Integer, Path>();
 		putQueue = new LinkedList<Integer>();
 		abortSet = new HashSet<Integer>();
+        fileStatus = new HashMap<Path, ReentrantReadWriteLock>();
+		filePathMapper = new HashMap<Integer, Path>();
 	}
 
     public void showStatus() {
@@ -84,7 +86,7 @@ public class ServerFTP {
                         fileStatus.remove(path);
                     showStatus();
                 } catch (Exception e) {
-                    e.printStackTrace(); //TODO
+                    e.printStackTrace();
                 }
                 
         }
@@ -96,7 +98,7 @@ public class ServerFTP {
                 if (fileStatus.containsKey(path)) {
                     //try to get read lock
                     if (fileStatus.get(path).readLock().tryLock()) {
-                        //generate unique 5 digit number
+                        //generate a unique terminate id
                         while (filePathMapper.containsKey(commandID = generateId()));
                         
                         //add to filePathMapper
@@ -109,13 +111,13 @@ public class ServerFTP {
                         return -1;
                 
                 }
-                //acquire lock
+                //acquire get lock
                 else {
                     //add to fileStatus and get readLock
                     fileStatus.put(path, new ReentrantReadWriteLock());
                     fileStatus.get(path).readLock().lock();
                     
-                    //generate unique 5 digit number
+                    //generate unique terminate id
                     while (filePathMapper.containsKey(commandID = generateId()));
                     
                     //add to filePathMapper
@@ -139,7 +141,7 @@ public class ServerFTP {
                         return true;
                     }
                 } catch (Exception e) {
-                    e.printStackTrace(); //TODO
+                    e.printStackTrace(); 
                 }
                 
                 return false;
@@ -161,7 +163,7 @@ public class ServerFTP {
                         return true;
                     }
                 } catch (Exception e) {
-                    e.printStackTrace(); //TODO
+                    e.printStackTrace(); 
                 }
                 
                 return false;
@@ -178,7 +180,7 @@ public class ServerFTP {
                         fileStatus.remove(path);
                     showStatus();
                 } catch (Exception e) {
-                    e.printStackTrace(); //TODO
+                    e.printStackTrace();
                 }
                 
             }

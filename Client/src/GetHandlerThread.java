@@ -36,9 +36,10 @@ public class GetHandlerThread implements Runnable {
 		
 		inputStreamReader = new InputStreamReader(socket.getInputStream());
 		bufferedReader = new BufferedReader(inputStreamReader);
-		dataInputStream = new DataInputStream(socket.getInputStream());
 		outputStream = socket.getOutputStream();
 		dataOutputStream = new DataOutputStream(outputStream);
+		dataInputStream = new DataInputStream(socket.getInputStream());
+		
 	}
 	
 	public void receiveFile() throws Exception {
@@ -71,9 +72,9 @@ public class GetHandlerThread implements Runnable {
 		if (clientFtp.abortGet(path.resolve(commandArgs.get(1)), serverPath.resolve(commandArgs.get(1)), terminateID)) return;
 		
 		//fetch file size
-		byte[] fileSizeBuffer = new byte[8];
-		dataInputStream.read(fileSizeBuffer);
-		ByteArrayInputStream bais = new ByteArrayInputStream(fileSizeBuffer);
+		byte[] fsb = new byte[8];
+		dataInputStream.read(fsb);
+		ByteArrayInputStream bais = new ByteArrayInputStream(fsb);
 		DataInputStream in = new DataInputStream(bais);
 		long fileSize = in.readLong();
 		
@@ -82,15 +83,15 @@ public class GetHandlerThread implements Runnable {
 		//get content from file
 		FileOutputStream fileOutputStream = new FileOutputStream(new File(commandArgs.get(1)));
 		int count = 0;
-		byte[] buffer = new byte[8192];
+		byte[] bf = new byte[10240];
 		long bytesReceived = 0;
 		while(bytesReceived < fileSize) {
 			if (clientFtp.abortGet(path.resolve(commandArgs.get(1)), serverPath.resolve(commandArgs.get(1)), terminateID)) {
 				fileOutputStream.close();
 				return;
 			}
-			count = dataInputStream.read(buffer);
-			fileOutputStream.write(buffer, 0, count);
+			count = dataInputStream.read(bf);
+			fileOutputStream.write(bf, 0, count);
 			bytesReceived += count;
 		}
 		fileOutputStream.close();
